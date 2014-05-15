@@ -4,6 +4,7 @@
 # https://mplayerhq.hu/DOCS/tech/slave.txt
 
 import sys
+import stat
 import os
 import signal
 import subprocess
@@ -13,9 +14,12 @@ from time import sleep
 #####################################################
 # Defaults
 
+fifo_dir = "/tmp"
+fifo_dir = "/projects/critter_list/fifo"
+
 url = "/data/media/radio/Science Friday/files/scifri201402211.mp3"
-ififo = "/projects/critter_list/mplayer.stdin.fifo"
-ofifo = "/projects/critter_list/mplayer.stdout.fifo"
+ififo = fifo_dir + "/mplayer.stdin.fifo"
+ofifo = fifo_dir + "/mplayer.stdout.fifo"
 log = "/projects/critter_list/log/mplayer.log"
 
 
@@ -191,7 +195,7 @@ def stop():
 def pause():
     os.write(io, 'pause\n'.encode(encoding='UTF-8'))
 
-def playurl(url):
+def launch_player(url):
     command = [
                 "mplayer", 
                 "-vo", "null", 
@@ -202,23 +206,74 @@ def playurl(url):
                 "-loop", "0", 
                 url
             ]
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    p = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL
+        )
     set_stdout_nonblocking(p)
     return p
 
+def playurl(url):
+
+    """
+    TODO: consider tempfile/directory handling like this:
+    http://stackoverflow.com/questions/1430446/create-a-temporary-fifo-named-pipe-in-python
+    import os, tempfile
+
+    tmpdir = tempfile.mkdtemp()
+    filename = os.path.join(tmpdir, 'myfifo')
+    print filename
+    try:
+        os.mkfifo(filename)
+    except OSError, e:
+        print "Failed to create FIFO: %s" % e
+    else:
+        fifo = open(filename, 'w')
+        # write stuff to fifo
+        print >> fifo, "hello"
+        fifo.close()
+        os.remove(filename)
+        os.rmdir(tmpdir)
+    """
 
 
-#####################################################
-# Main
+    if not os.path.exists(ififo):
+        try:
+            sys.stderr.write(
+                "playurl: X creating ififo %s...\n"
+                % (ififo)
+            )
+            # TODO: figure out how to set mode here; never seemed to work
+            #       0644, O644 and '0644' were all tried, with no success
+            #os.mkfifo(ififo, mode=O644)
+            os.mkfifo(ififo)
+        except:
+            sys.stderr.write(
+                "playurl ERROR: failed to create ififo %s.  "
+                "Description: %s  %s"
+                "Exiting abnormally\n"
+                % (ififo, sys.exc_info()[0], str(sys.exc_info()))
+            )
+            return 2
+    else:
+        # if it exists, but it not a fifo, then also show an error
+        if not stat.S_ISFIFO(os.stat(ififo).st_mode):
+            sys.stderr.write(
+                "playurl ERROR: file %s is not a fifo!  "
+                " Exiting abnormally\n"
+                % (ififo)
+            )
+            return 3
+        else:
+            sys.stderr.write(
+                "playurl: ififo %s already exists in the filesystem and is indeed a fifo.\n"
+                % (ififo)
+            )
 
-if __name__ == "__main__":
-
-    url = sys.argv[1]
-    sys.stderr.write("launched %s with url %s" 
-        % (sys.argv[0], sys.argv[1]))
     mplayerIn = os.open(ififo, os.O_WRONLY | os.O_NONBLOCK)
     #mplayerOut = os.open(ofifo, os.O_RDWR | os.O_NONBLOCK)
-    p = playurl(url)
+    p = launch_player(url)
     mplayerOut = p.stdout
     sleep(5.0)
     dump_output(mplayerOut)
@@ -226,3 +281,11 @@ if __name__ == "__main__":
     os.close(mplayerIn)
     sleep(10.0)
 
+
+#####################################################
+# Main
+
+if __name__ == "__main__":
+    sys.stderr.write("launched %s with url %s\n"
+        % (sys.argv[0], sys.argv[1]))
+    playurl(sys.argv[1])
