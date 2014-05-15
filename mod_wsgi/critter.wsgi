@@ -2,7 +2,7 @@
 #!/usr/bin/python3.3 -u
 
 """
-critter.wsgi - a dynamic voting system
+critter.wsgi - a dynamic voting system for playlists
 
 @author: Bryant Hansen
 @license: GPLv3
@@ -20,6 +20,8 @@ from random import randint, choice
 import logging
 import subprocess
 
+sys.path.append(os.path.dirname(__file__))
+
 import pyplayer
 
 try:
@@ -27,11 +29,16 @@ try:
 except ImportError:
      from cStringIO import StringIO
 
+try:
+     import critter_settings.py
+except ImportError:
+     pass
+
 from cgi import parse_qs, escape
 from traceback import format_exc, print_exc, print_stack
 from pprint import pformat
 
-DIR='/var/www/elektrogeddon.net/mod_wsgi'
+DIR='/var/www/localhost/mod_wsgi'
 LOGDIR = '/projects/critter_list/log'
 LOGFILE = ("%s/%s.log" % (LOGDIR, 'critter'))
 
@@ -95,7 +102,7 @@ def dump_todo():
         "<p>Users log in via the browser and can give a &quot;Thumbs-up&quot; or a &quot;Thumbs-down&quot; to the available tracks in the playlist.</p>\n"
         "<p>Each track has a score; tracks with the highest score are played first.</p>\n"
         "</div>\n"
-        "<div id='docs_overview' class='docs'>\n"
+        "<div id='docs_features' class='docs'>\n"
         "<h3>Features</h3>\n"
         "<ul>\n"
         "<li>Allows multiple users to vote on playlist items via the web browser\n"
@@ -104,7 +111,7 @@ def dump_todo():
         "<li>"
         "</ul>\n"
         "</div>\n"
-        "<div id='docs_overview' class='docs'>\n"
+        "<div id='docs_planned_features' class='docs'>\n"
         "<h3>Planned Features</h3>\n"
         "<ul>\n"
         "<li>Media player integration\n"
@@ -113,9 +120,18 @@ def dump_todo():
         "<li>"
         "</ul>\n"
         "</div>\n"
+        "<div id='docs_features' class='docs'>\n"
+        "<h3>News</h3>\n"
+        "<ul>\n"
+        "<li>Abandoned MULTIPLE WEB-SERVER COMPATIBILITY feature.  An adaption layer for mod_python to connect to the mostly mod_wsgi-based code.  The feature was nearly complete, but it turned into more code than expected and mod_python is more obsolete than first estimated.  I'm not sure it's likely that it will be ported to python v3\n"
+        "</ul>\n"
+        "</div>\n"
         "<div id='todo' class='docs'>\n"
         "<h3>TODO</h3>\n"
         "<ul>\n"
+        "<li>FIX: admin screen should be updated for smaller displays\n"
+        "<li>FIX: the score field on the player page is incorrect; the SQL query must be changed to not count playlistHistory entries\n"
+        "<li>PERFORMANCE: terribly-slow with the combination of SSL &amp; the VM; investigate the bottlenecks, which would be related to VirtualBox, Apache, SSL, mod_wsgi or whatever else I'm not aware of\n"
         "<li>MULTIPLE WEB-SERVER COMPATIBILITY: finish the feature to adapt both mod_wsgi with python 3.3 and mod_python with python 2.7\n"
         "<li>LOOK &amp; FEEL: additional skinz to choose from, with config interface to change\n"
         "<li>WIDTH: pass screen width from client and dynamically adjust to it; menu items look terrible when auto-wrapping in small screens right now\n"
@@ -272,7 +288,9 @@ def get_base_filename_from_env(env, name):
 
 
 """
-Figure out who is logged in, so that they don't get a duplicate voter record and multiple votes
+Figure out who is logged in, so that they don't get a duplicate voter record
+and multiple votes
+
 @return: voter name as a string
 """
 def discover_voter(env, urldict, con):
@@ -346,7 +364,8 @@ def get_session(cur, voterId):
         return None
     elif len(rows) > 1:
         TRACE(
-            "ERROR: multiple active sessions found for voter #%d.  Returning last." 
+            "ERROR: multiple active sessions found for voter #%d.  "
+            "Returning last." 
             % voterId
         )
         return rows[0][cur.rowcount]
@@ -577,7 +596,7 @@ def dump_playlists_table(sessionContext, admin = False):
                             "onclick='delete_playlist(%d, %d, %d)' "
                         "/>\n"
                     "</td>\n"
-                    % ( cur.description[0][1], sessionId, voterId, lPlaylistId )
+                    % (cur.description[0][1], sessionId, voterId, lPlaylistId)
                 )
             req.write("</tr>\n")
     req.write("</table>\n")
@@ -1122,7 +1141,11 @@ def dump_tally_table(cur, playlistId, narrow = True):
             heading = str(cur.description[col][0])
             if narrow:
                 if heading == 'title':
-                    req.write("<th class='subheader'>Title / Artist / Album / Filename</th>\n")
+                    req.write(
+                        "<th class='subheader'>"
+                            "Title / Artist / Album / Filename"
+                        "</th>\n"
+                    )
                 elif heading == 'artist' or \
                     heading == 'yaes' or \
                     heading == 'nahs' or \
@@ -1130,9 +1153,15 @@ def dump_tally_table(cur, playlistId, narrow = True):
                     heading == 'filename':
                         pass
                 else:
-                   req.write("<th class='subheader'>" + str(cur.description[col][0]) + "</th>\n")
+                   req.write(
+                       "<th class='subheader'>%s</th>\n"
+                       % str(cur.description[col][0])
+                    )
             else:
-                req.write("<th class='subheader'>" + str(cur.description[col][0]) + "</th>\n")
+                req.write(
+                    "<th class='subheader'>%s</th>\n"
+                    % str(cur.description[col][0])
+                )
         req.write("</tr>\n")
         for row in rows:
             # TODO: convert this to dictionary
@@ -1164,14 +1193,15 @@ def dump_tally_table(cur, playlistId, narrow = True):
                             "&nbsp;&nbsp;%s<br />\n"
                             "&nbsp;&nbsp;%s<br />\n"
                             "&nbsp;&nbsp;%s</td>\n" %
-                            (str(title), str(artist), str(album), str(filename))
+                            (title, artist, album, filename)
                         )
                     elif colname == 'score':
                         req.write("<td class='score'><span class='score'>")
                         if len(score) < 1:
                             req.write("&nbsp;\n")
                         else:
-                            # consider converting database results to dict objects
+                            # TODO: consider converting database results to
+                            #       dict objects
                             req.write(
                                 "%s </span><br /> %s yaes <br /> %s nahs" 
                                 % (score, yaes, nays)
@@ -1230,26 +1260,6 @@ def get_next_track(cur, playlistId):
     }
     # major query: this is where the magic happens
     # this retreives the tally, including the score/ranking of every song
-
-    # TODO: 
-    #    "WHERE playlist_tracks.playlist_id = '%d' "
-    # to:
-    #    "WHERE playlist_tracks.playlist_id = '%d' "
-    #           AND ( ( time_since_played == None )
-    #              OR ( time_since_played > 5 hours ) )
-
-    """
-                "IFNULL( "
-                "    strftime('%%s', SUBSTR(MAX(playhistory.playedOn), 1, 19)) "
-                " -  strftime('%%s','now') "
-                ", 1000000000"
-                ") "
-                "AS time_since_played "
-        "WHERE playlist_tracks.playlist_id = '%d' AND time_since_played > 18000 "
-    """
-
-
-
     cur.execute(
         "SELECT "
             "( "
@@ -1352,6 +1362,8 @@ def dump_playlist_table(sessionContext):
 
     # major query: this is where the magic happens
     # this retreives the tally, including the score/ranking of every song
+    # Note: the playlistHistory join corrupts the COUNT
+    # This may need to be a sub-query
     try:
         cur.execute(
             "SELECT "
@@ -1442,7 +1454,7 @@ def dump_playlist_table(sessionContext):
                 continue
 
             t = int(time_since_played)
-            TRACE("dump_playlist_table: time since played = %d" % t)
+            # TRACE("dump_playlist_table: time since played = %d" % t)
             if t >= INFINITY:
                 time_since_played_string = 'never'
             else:
@@ -1470,7 +1482,8 @@ def dump_playlist_table(sessionContext):
                 basefilename = os.path.basename(filename)
                 basefilename = format_short_string(basefilename)
 
-                last_played = last_played.replace ('T', '  ', 1)
+                if last_played != 'never':
+                    last_played = last_played.replace('T', '  ', 1) + " GMT"
 
                 time_since_played_string = str(time_since_played_string)
                 time_since_played_string = time_since_played_string.replace (':', ' hrs, ', 1)
@@ -1557,7 +1570,7 @@ def dump_playlist_table(sessionContext):
                             % (heading)
                         )
             else:
-                # not first
+                # not first; this is the following table of upcoming tracks
                 req.write("<tr>\n")
                 title = format_short_string(title)
                 artist = format_short_string(artist)
@@ -1594,24 +1607,44 @@ def dump_playlist_table(sessionContext):
                         elif str(cur.description[col][0]) == 'last_played':
                             if last_played == None:
                                 last_played = 'never'
-                            else:
-                                # TODO: convert to local time
-                                #last_played = last_played
-                                last_played = last_played.replace('T','<br />', 1) + " GMT"
-                                pass
+                            if last_played != 'never':
+                                last_played = last_played.replace(
+                                                            'T', '<br />', 1
+                                                        ) + " GMT"
                             req.write(
                                 "<td class='%s'>%s</td>"
                                 % (str(cur.description[col][0]), last_played)
                             )
                         elif str(cur.description[col][0]) == 'time_since_played':
-                            time_since_played_string = str(time_since_played_string)
-                            time_since_played_string = time_since_played_string.replace (':', ' hours<br />', 1)
-                            time_since_played_string = time_since_played_string.replace ('0 hours<br />', '', 1)
-                            time_since_played_string = time_since_played_string.replace (':', ' minutes<br />', 1)
-                            time_since_played_string += " seconds"
+                            time_since_played_string = \
+                                            str(time_since_played_string) \
+                                            + " seconds"
+                            time_since_played_string = \
+                                            time_since_played_string.replace(
+                                                ':', ' hours<br />', 1
+                                            )
+                            # tip on how to do an efficient, single-pass
+                            # multi-string replace:
+                            # http://emilics.com/blog/article/multi_replace.html
+                            rdict = {
+                                 '01 hours<br />': '01 hour<br />',
+                                              ':': ' minutes<br />',
+                               '01 minutes<br />': '01 minute<br />',
+                               '01 seconds<br />': '01 second<br />',
+                                             ', ': '<br />',
+                                        '<br />0': '<br />'
+                            }
+                            robj = re.compile('|'.join(rdict.keys()))
+                            time_since_played_string = robj.sub (
+                                lambda m: rdict[m.group(0)],
+                                time_since_played_string
+                            )
                             req.write(
                                 "<td class='%s'>%s</td>"
-                                % (str(cur.description[col][0]), time_since_played_string)
+                                % (
+                                    str(cur.description[col][0]),
+                                    time_since_played_string
+                                )
                             )
                         else:
                             req.write(
@@ -1668,10 +1701,14 @@ def dump_misc_stats(cur, playlistId):
     else:
         req.write(
             "<tr>\n"
-                "<td>Playlist name:</td><td>%s</td>\n"
+                "<th class='misc_stats_label'>Playlist name:</th>\n"
+                "<td class='misc_stats_value'>%s</td>\n"
             "</tr>\n"
             "<tr>\n"
-                "<td>Number of tracks in playlist:</td><td>%s</td>\n"
+                "<th class='misc_stats_label'>"
+                    "Number of tracks in playlist:"
+                "</th>\n"
+                "<td class='misc_stats_value'>%s</td>\n"
             "</tr>\n"
             % (str(rows[0][1]), str(rows[0][0]))
         )
@@ -1680,16 +1717,18 @@ def dump_misc_stats(cur, playlistId):
     rows = cur.fetchall()
     if len(rows) < 1:
         req.write(
-            "<tr>"
-                "<td colspan='2'>Could not count the number of votes cast</td>"
+            "<tr>\n"
+                "<td class='misc_stats_value' colspan='2'>"
+                    "Could not count the number of votes cast"
+                "</td>\n"
             "</tr>\n"
         )
     else:
         answer = rows[0][0]
         req.write(
             "<tr>\n"
-                "<td>Number of votes cast:</td>\n"
-                "<td>%s</td>\n"
+                "<th class='misc_stats_label'>Number of votes cast:</th>\n"
+                "<td class='misc_stats_value'>%s</td>\n"
             "</tr>\n"
             % answer
         )
@@ -1697,16 +1736,20 @@ def dump_misc_stats(cur, playlistId):
     rows = cur.fetchall()
     if len(rows) < 1:
         req.write(
-            "<tr>"
-                "<td colspan='2'>Could not count the number of tracks</td>"
+            "<tr>\n"
+                "<td class='misc_stats_value' colspan='2'>"
+                    "Could not count the number of tracks"
+                "</td>\n"
             "</tr>\n"
         )
     else:
         answer = rows[0][0]
         req.write(
             "<tr>\n"
-                "<td>Number of tracks available: </td>\n"
-                "<td>%s</td>\n"
+                "<th class='misc_stats_label'>"
+                    "Number of tracks available: "
+                "</th>\n"
+                "<td class='misc_stats_value'>%s</td>\n"
             "</tr>\n"
             % answer
         )
@@ -2179,7 +2222,11 @@ def dump_admin_page(sessionContext):
         voterName = lookup_votername(sessionContext.cur, sessionContext.voterId)
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId, 
+            voterName, 
+            sessionContext.playlistName
+        ) +
         dump_menu(sessionContext.voterId, "ADMIN") +
         dump_vote_tables(sessionContext, admin = True) +
         dump_debug_div(sessionContext.environ, sessionContext.cur) +
@@ -2202,7 +2249,11 @@ def dump_tracks_page(sessionContext):
     )
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, sessionContext.voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId,
+            voterName,
+            sessionContext.playlistName
+        ) +
         dump_menu(sessionContext.voterId, "TRACKS") +
         dump_tracks_table(sessionContext, admin = False, controls = False) +
         dump_debug_div(sessionContext.environ, sessionContext.cur) +
@@ -2213,12 +2264,22 @@ def dump_tracks_page(sessionContext):
 def dump_player_page(sessionContext):
     voterName = sessionContext.voterName
     if len(voterName) < 1:
-        voterName = lookup_votername(sessionContext.cur, sessionContext.voterId)
+        voterName = lookup_votername(
+                        sessionContext.cur, 
+                        sessionContext.voterId
+                    )
     # TODO: consider sanity-check of voterName/voterId
-    TRACE("dump_player_page: voterId = " + str(sessionContext.voterId) + ", voterName = '" + sessionContext.voterName + "'")
+    TRACE(
+        "dump_player_page: voterId = %d, voterName = '%s'"
+        % (sessionContext.voterId, sessionContext.voterName)
+    )
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, sessionContext.voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId,
+            voterName,
+            sessionContext.playlistName
+        ) +
         dump_menu(sessionContext.voterId, "PLAYER") +
         dump_playlist_div(sessionContext) +
         dump_debug_div(sessionContext.environ, sessionContext.cur) +
@@ -2237,7 +2298,11 @@ def dump_debug_page(sessionContext):
     )
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, sessionContext.voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId,
+            voterName,
+            sessionContext.playlistName
+        ) +
         dump_menu(voterId, "DEBUG") +
         dump_debug_div(sessionContext.environ, sessionContext.cur) +
         dump_body_footer() +
@@ -2254,7 +2319,11 @@ def dump_docs_page(sessionContext):
     )
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId,
+            voterName,
+            sessionContext.playlistName
+        ) +
         dump_menu(sessionContext.voterId, "DOCS") +
         dump_todo() +
         dump_body_footer() +
@@ -2271,7 +2340,11 @@ def dump_votes_page(sessionContext):
     )
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId,
+            voterName,
+            sessionContext.playlistName
+        ) +
         dump_menu(sessionContext.voterId, "VOTES") +
         dump_votes_table(sessionContext) +
         dump_body_footer() +
@@ -2286,7 +2359,11 @@ def dump_config_page(sessionContext):
     TRACE("dump_config_page: voterId = " + str(sessionContext.voterId) + ", voterName = '" + sessionContext.voterName + "'")
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, sessionContext.voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId,
+            voterName,
+            sessionContext.playlistName
+        ) +
         dump_menu(sessionContext.voterId, "CONFIG") +
         dump_config_div(sessionContext) +
         dump_body_footer() +
@@ -2301,7 +2378,11 @@ def dump_visuals_page(sessionContext):
     TRACE("dump_visuals_page: voterId = " + str(sessionContext.voterId) + ", voterName = '" + sessionContext.voterName + "'")
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, sessionContext.voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId,
+            voterName,
+            sessionContext.playlistName
+        ) +
         dump_menu(sessionContext.voterId, "VISUALS") +
         "<H3 class='todo'>TODO: make visuals_page</H3>\n" +
         dump_body_footer() +
@@ -2316,7 +2397,11 @@ def dump_add_track_page(sessionContext):
     TRACE("dump_add_track_page: voterId = " + str(sessionContext.voterId) + ", voterName = '" + sessionContext.voterName + "'")
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, sessionContext.voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId,
+            voterName,
+            sessionContext.playlistName
+        ) +
         dump_menu(sessionContext.voterId, "ADD TRACKS") +
         "<H3 class='todo'>TODO: make add_track page</H3>\n" +
         dump_body_footer() +
@@ -2331,7 +2416,11 @@ def dump_tally_page(sessionContext):
     TRACE("dump_tally_page: voterId = " + str(sessionContext.voterId) + ", voterName = '" + sessionContext.voterName + "'")
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, sessionContext.voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId,
+            voterName,
+            sessionContext.playlistName
+        ) +
         dump_menu(sessionContext.voterId, "TALLY") +
         dump_tally_table(sessionContext.cur, sessionContext.playlistId, narrow = sessionContext.narrow) +
         dump_debug_div(sessionContext.environ, sessionContext.cur) +
@@ -2348,7 +2437,11 @@ def dump_stats_page(sessionContext):
     TRACE("dump_stats_page: voterId = " + str(sessionContext.voterId) + ", voterName = '" + voterName + "', playlistId = '" + str(sessionContext.playlistId) + "'")
     return (
         dump_html_header() +
-        dump_body_header(sessionContext.voterId, voterName, sessionContext.playlistName) +
+        dump_body_header(
+            sessionContext.voterId,
+            voterName,
+            sessionContext.playlistName
+        ) +
         dump_menu(sessionContext.voterId, "STATS") +
         dump_misc_stats(cur, sessionContext.playlistId) +
         dump_winners_table(cur, sessionContext.playlistId, 10, narrow = sessionContext.narrow) +
@@ -2554,8 +2647,13 @@ def do_player_command(sessionContext):
         # get the track to be played
         track = get_next_track(cur, playlistId)
         trackId = 0
+        filename = ""
         try:
             trackId = int(track['trackId'])
+        except:
+            pass
+        try:
+            filename = track['filename']
         except:
             pass
         if trackId >= 1:
@@ -2591,6 +2689,20 @@ def do_player_command(sessionContext):
                 TRACE(
                     "do_player_command: Exception running %s" 
                     % str(sys.argv[0])
+                )
+                print_exc(file=env['wsgi.errors'])
+                return str(sys.exc_info()[0]) + "\n" + format_exc(10)
+            try:
+                TRACE(
+                    "do_player_command: attempting to play %s via pyplayer..."
+                    % filename
+                )
+                pyplayer.playurl(filename)
+            except:
+                e = sys.exc_info()[0]
+                TRACE(
+                    "do_player_command: Exception running pyplayer.playurl(%s)" 
+                    % filename
                 )
                 print_exc(file=env['wsgi.errors'])
                 return str(sys.exc_info()[0]) + "\n" + format_exc(10)
@@ -2653,7 +2765,6 @@ def do_vote(sessionContext):
     # sanity check
     if is_valid(con, vote, voterId, trackId, sessionId, 1):
         TRACE("vote = " + str(urldict))
-        os.chdir(DIR)
         cur = con.cursor()
         cur.execute(
             "SELECT id, trackId, voterId, vote "
@@ -2811,7 +2922,6 @@ def dump_environ(environ):
             # TRACE("Exception running: " + str(sys.exc_info()[0]) + "\n" + str(format_exc(10)))
             pass
 
-    
 
 ######################
 # Main (mod_wsgi)
@@ -2823,7 +2933,17 @@ def application(environ, start_response):
     voterId = default_voterId
     playlistId = default_playlistId
 
-    os.chdir(DIR)
+    TRACE("os.path.dirname(__file__) = %s" % os.path.dirname(__file__))
+    DIR = os.path.dirname(__file__)
+    try:
+        os.chdir(DIR)
+    except:
+        TRACE(
+            "Failed to change current dir to %s; let's see what happens.  "
+            "curdir = %s"
+            % (DIR, os.getcwd())
+        )
+
     dbConnection = sqlite3.connect('critters.db')
     dbConnection.text_factory = sqlite3.OptimizedUnicode
     cur = dbConnection.cursor()
