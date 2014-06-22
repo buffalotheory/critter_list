@@ -1,20 +1,54 @@
 #!/usr/bin/python3.3 -u
 # Bryant Hansen
+# @license: GPLv3
 
-# a wrapper for mplayer using the slave interfacet
-# https://mplayerhq.hu/DOCS/tech/slave.txt
+"""
+a wrapper for mplayer using the slave interfacet
+https://mplayerhq.hu/DOCS/tech/slave.txt
 
-# TODO: launch mplayer in a thread
+This command launches one thread for the mplayer output monitor and one
+thread for mplayer itself
+
+It's been tested with ipython; and running from the command line
+The main work starts with the playurl() function
+
+It is functional, but requires static state information, which is not
+so convenient for the web server application that this designed to interface
+with.
+
+A redesign may be necessary in order to connect to an existing instance of
+mplayer, without any static information on startup.  This might work like so:
+  - mplayer writes stdout and stderr files
+  - on startup, look for processes named mplayer
+  - check each mplayer process for open files in the /proc/<pid>/ tree
+  - verify that the intended files are open
+  - seek to the end of stdout(and/or stderr); mplayer normally responds in
+    slave mode on stdout
+  - send the command to the fifo (or directly to stdin, if possible)
+  - get the response from new data from stdout
+  - 
+
+This version should become a separate branch before new development
+
+Alternative Option: Daemon Design (local server)
+  - implement daemon in background
+  - launches, monitors, controls, kills, mplayer subprocess
+  - use json for RPC
+
+TODO: consider any queuing mechanisms that should be in place for the
+      mplayer interface (either in or out)
+
+"""
 
 import sys
 import stat
 import os
 import signal
 import subprocess
+import logging
 from time import sleep
 from datetime import datetime, timedelta
-import logging
-from threading import Thread
+from threading import Thread, Event
 
 
 #####################################################
@@ -284,15 +318,15 @@ def TRACE(msg):
 
 class MPlayerIF:
 
+    mplthread = None
+    player_state = 0
+    mplproc = None
+    read_thread = None
+    fifo = ififo
+    mpl_fifo_fd = None
+
     def __init__(self):
         logging.basicConfig(filename=LOGFILE, level=logging.DEBUG)
-        self.mplthread = None
-        self.player_state = 0
-        self.mplproc = None
-        self.read_thread = None
-        self.fifo = ififo
-        self.mpl_fifo_fd = None
-        pass
 
     def flush_output(self, stdouterr):
         # TODO: implement me!
@@ -318,7 +352,7 @@ class MPlayerIF:
         ret = fcntl.fcntl(p.stdout.fileno(), fcntl.F_SETFL, filemode)
         TRACE("filemode set.  ret = " + str(ret))
 
-    def subprocess_output_readline(self, stdouterr, expect=""):
+    def __subprocess_output_readline(self, stdouterr, expect=""):
         """
         This function dumps all pending data from the mplayer stdout or stderr
         buffers and will optionally match the "expect" string.
@@ -339,7 +373,7 @@ class MPlayerIF:
             output = stdouterr.readline().decode("utf-8")
         except:
             TRACE(
-                "Exception in subprocess_output_readline: %s"
+                "Exception in __subprocess_output_readline: %s"
                 % str(sys.exc_info())
             )
             TRACE(
@@ -352,7 +386,7 @@ class MPlayerIF:
             return "PROPERTY_UNAVAILABLE"
         if len(output) < 1:
             return ""
-        TRACE("subprocess_output_readline: output = %s" % output)
+        TRACE("__subprocess_output_readline: output = %s" % output)
         if len(expect) > 0:
             split_output = output.split(expect + '=', 1)
             # we have found it
@@ -369,7 +403,7 @@ class MPlayerIF:
             retstr = output
         return retstr
 
-    def mplayer_output_loop(self, expect=""):
+    def __mplayer_output_loop(self, expect=""):
         """
         This function dumps all pending data from the mplayer stdout buffer and
         will optionally match the "expect" string.
@@ -398,7 +432,7 @@ class MPlayerIF:
                 continue
             if len(output) < 1:
                 continue
-            TRACE("mplayer_output_loop: output = %s" % output)
+            TRACE("__mplayer_output_loop: output = %s" % output)
             if len(expect) > 0:
                 split_output = output.split(expect + '=', 1)
                 # we have found it
@@ -416,6 +450,13 @@ class MPlayerIF:
                 retstr += output
         return retstr
 
+    def get_state(self):
+        """
+        TODO: this should return the state psuedo-enum, rather than process
+        status
+        """
+        return self.mplproc.poll()
+
     def perform_command(self, cmd, expect=""):
         TRACE("perform_command: sending cmd '%s'" % cmd)
         res = os.write(self.mpl_fifo_fd, (cmd + '\n').encode(encoding='UTF-8'))
@@ -426,7 +467,7 @@ class MPlayerIF:
         )
         """
         sleep(0.05)
-        output = self.mplayer_output_loop(expect)
+        output = self.__mplayer_output_loop(expect)
         if len(output) > 0:
             TRACE(
                 "perform_command: mplayer output returned '%s'"
@@ -434,35 +475,10 @@ class MPlayerIF:
             )
         else:
             TRACE(
-                "perform_command: mplayer_output_loop returned a zero-length "
+                "perform_command: __mplayer_output_loop returned a zero-length "
                 "string"
             )
         return output
-
-    def get_all_information(self):
-        for s in get_strings.keys():
-            a = self.perform_command(s)
-            TRACE("get_all_information: parameter %s = '%s'" % (s, str(a)))
-        for s in properties.keys():
-            os.write(
-                self.mpl_fifo_fd,
-                ("get_property %s\n" % s).encode(encoding='UTF-8')
-            )
-            a = perform_command(
-                    "get_property %s" % s
-                )
-            TRACE(
-                    "get_all_information: property %s = '%s'"
-                    % (s, str(a))
-            )
-        TRACE("get_all_information: all strings and properties queried.")
-
-    def get_state(self):
-        """
-        TODO: this should return the state psuedo-enum, rather than process
-        status
-        """
-        return self.mplproc.poll()
 
     def get_current_time(self):
         return self.perform_command('get_time_pos')
@@ -521,7 +537,25 @@ class MPlayerIF:
     def do_command(self, command):
         return self.perform_command(command)
 
-    def mplayer_thread(self):
+    def get_all_information(self):
+        for s in get_strings.keys():
+            a = self.perform_command(s)
+            TRACE("get_all_information: parameter %s = '%s'" % (s, str(a)))
+        for s in properties.keys():
+            os.write(
+                self.mpl_fifo_fd,
+                ("get_property %s\n" % s).encode(encoding='UTF-8')
+            )
+            a = perform_command(
+                    "get_property %s" % s
+                )
+            TRACE(
+                "get_all_information: property %s = '%s'"
+                % (s, str(a))
+            )
+        TRACE("get_all_information: all strings and properties queried.")
+
+    def mplayer_thread(self, threadName, mplayer_start_event, url):
         """
         This is a thread which is a wrapper for the process
         The thread further isolates the mplayer process from the main
@@ -534,6 +568,8 @@ class MPlayerIF:
         TODO: consider tempfile/directory handling like this:
         http://stackoverflow.com/questions/1430446/create-a-temporary-fifo-named-pipe-in-python
         """
+        event_set = False
+        TRACE("enter mplayer_thread; launching %s" % url)
         command = [
                     "mplayer",
                     "-vo", "null",
@@ -543,14 +579,14 @@ class MPlayerIF:
                     "file=" + self.fifo,
                     "-quiet",
                     url
-                ]
+                  ]
         try:
             self.mplproc = subprocess.Popen(
-                    command,
-                    shell=False,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
+                                command,
+                                shell=False,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE
+                           )
             #self.__set_stdout_blocking(self.mplproc)
             self.mpl_fifo_fd = os.open(self.fifo, os.O_WRONLY)
             TRACE(
@@ -558,16 +594,18 @@ class MPlayerIF:
                 "process poll() / exit code = %s"
                 % (str(self.mplproc.pid), str(self.mplproc.poll()))
             )
+            mplayer_start_event.set()
+            event_set = True
             self.mplproc.wait()
             TRACE("self.mplproc.wait() completed")
         except:
             TRACE("player(%s) ERROR: failed to create read thread" % url)
             e = sys.exc_info()
             TRACE("exception info: %s" % str(e))
-            return 4
+            if not event_set:
+                mplayer_start_event.set()
 
     def launch_player(self, url):
-
         if not self.verifyFifoPath(fifo_dir):
             TRACE(
                 "playurl(%s): failed to verify the path to the fifos (%s)"
@@ -580,23 +618,24 @@ class MPlayerIF:
                 "playurl(%s): failed to verifyFifos.  Exiting abnormally" % url
             )
             return False
-
+        mplayer_start_event = Event()
         # start the mplayer thread, which will contain the mplayer process
         self.mplthread = Thread(
                     target = self.mplayer_thread,
-                    args = ("mplayerThread")
+                    args = ("mplayerThread", mplayer_start_event, url)
                 )
-
-        # wait for the read thread to complete
         self.mplthread.start()
+        mplayer_start_event.wait()
         #self.__set_stdout_nonblocking(self.mplproc)
-
         TRACE("launch_player: mplayer thread started")
-
-        if self.mplproc.poll() == None:
-            return True
-        else:
+        if self.mplproc == None:
+            TRACE("launch_player ERROR: self.mplproc not set.")
             return False
+        else:
+            if self.mplproc.poll() == None:
+                return True
+            else:
+                return False
 
     def verifyFifoPath(self, fifo_dir):
         if os.path.exists(fifo_dir):
@@ -677,7 +716,7 @@ class MPlayerIF:
             return False
         return True
 
-    def subproc_output_monitor(self, threadName, stdouterr):
+    def __subproc_output_monitor(self, threadName, stdouterr):
         empty_count = 0
         TRACE(
             "start read loop.  change to blocking reads for efficiency.  "
@@ -685,9 +724,9 @@ class MPlayerIF:
         )
         while True:
             try:
-                out = self.subprocess_output_readline(stdouterr)
+                out = self.__subprocess_output_readline(stdouterr)
                 TRACE(
-                    "subproc_output_monitor: mplayer output = '%s'"
+                    "__subproc_output_monitor: mplayer output = '%s'"
                     % str(out)
                 )
                 if len(out) > 0:
@@ -695,25 +734,27 @@ class MPlayerIF:
                 else:
                     procstat = self.mplproc.poll()
                     empty_count += 1
-                    TRACE(
-                        "Empty output #%d received from subprocess.readline()."
-                        "  subprocess.poll() = %s.  type(procstat) = %s"
-                        % (empty_count, str(procstat), str(type(procstat)))
-                    )
                     if procstat == None:
-                        TRACE("PROCESS APPEARS TO STILL BE RUNNING")
+                        TRACE(
+                            "Empty output #%d received from "
+                            "subprocess.readline()."
+                            "  subprocess.poll() = %s.  type(procstat) = %s  "
+                            "Continuing read loop"
+                            % (empty_count, str(procstat), str(type(procstat)))
+                        )
                     else:
-                        TRACE("TODO: KILL PROCESS")
+                        TRACE("Terminating mplayer read loop")
+                        return 1
                 if empty_count >= 3:
                     TRACE(
-                        "subproc_output_monitor: 3 empties in a row.  "
+                        "__subproc_output_monitor: 3 empties in a row.  "
                         "bailing out."
                     )
                     return 1
                 # TODO: this should update a dictionary of vars (with timestamps)
             except:
                 TRACE(
-                    "subproc_output_monitor: Exception in read loop: %s.  "
+                    "__subproc_output_monitor: Exception in read loop: %s.  "
                     "Terminating."
                     % str(sys.exc_info())
                 )
@@ -722,35 +763,13 @@ class MPlayerIF:
         return 0
 
     def playurl(self, url):
-
-        self.mplproc = self.launch_player(url)
-
-        cmd = "volume -5"
-        res = self.perform_command(cmd)
-        TRACE(
-            "playurl: perform_command:\n  cmd = %s\n  result: %s"
-            % (cmd, res)
-        )
-        out = self.mplayer_output_loop(self.mplproc.stdout)
+        self.launch_player(url)
+        out = self.__mplayer_output_loop(self.mplproc.stdout)
         TRACE("playurl: cmd = '%s', out = '%s'" % (cmd, str(out)))
-
-        """
-        try:
-            self.get_all_information(self.mpl_fifo_fd, self.mplproc.stdout)
-            TRACE("get_all_information complete")
-        except:
-
-            TRACE(
-                "get_all_information: Exception: %s"
-                % (str(sys.exc_info()))
-            )
-        """
-
         # start the read thread
         try:
-            #self.__set_stdout_blocking(self.mplproc)
             self.read_thread = Thread(
-                        target = self.subproc_output_monitor,
+                        target = self.__subproc_output_monitor,
                         args = ("mplayerStdoutMonitor", self.mplproc.stdout, )
                     )
             # wait for the read thread to complete
@@ -760,29 +779,29 @@ class MPlayerIF:
                 "self.mplproc.stdout = %s"
                 % (str(self.read_thread), str(self.mplproc.stdout))
             )
-            #self.read_thread.join()
-            #TRACE("mplayerStdoutMonitor completed")
         except:
             TRACE("player(%s) ERROR: failed to create read thread" % url)
             e = sys.exc_info()
             TRACE("exception info: %s" % str(e))
-            return 4
-
+            return False
         return True
 
     def cleanup(self):
-        # cleanup
-        #try:
-        os.remove(self.fifo)
-        #except:
-        """
+        try:
+            os.remove(self.fifo)
+        except:
             TRACE(
                 "Exception cleaning up on return: %s.  Aborting."
                 % str(sys.exc_info())
             )
             return 5
-        """
         return 0
+
+    def test_sub2(self, x, y):
+        sys.stdout.write("test_sub2(%d, %d)\n" % (x, y))
+        sys.stdout.flush()
+        return x - y
+
 
 
 #####################################################
