@@ -513,7 +513,7 @@ def dump_html_header():
         "-->\n"
         "<html>\n"
         "<head>\n"
-        "<META HTTP-EQUIV='Content-Type' CONTENT='text/html; charset=ISO-8859-1'>\n"
+        "<META HTTP-EQUIV='Content-Type' CONTENT='text/html; charset=utf-8'>\n"
         "<title>Critter List - a Dechromatic Playlist</title>\n"
         "<LINK REL=StyleSheet HREF='/css/critter.css' TYPE='text/css' MEDIA=screen>\n"
         #"<meta name=HandheldFriendly' content='true' />\n"
