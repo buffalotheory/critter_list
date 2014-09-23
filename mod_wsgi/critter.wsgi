@@ -4,7 +4,7 @@
 """
 critter.wsgi - a dynamic voting system for playlists
 
-@author: Bryant Hansen
+@author: Bryant Hansen <github1@bryanthansen.net>
 @license: GPLv3
 """
 
@@ -25,20 +25,20 @@ sys.path.append(os.path.dirname(__file__))
 import pyplayer
 
 try:
-     from io import StringIO
+    from io import StringIO
 except ImportError:
-     from cStringIO import StringIO
+    from cStringIO import StringIO
 
 try:
-     import critter_settings.py
+    import critter_settings.py
 except ImportError:
-     pass
+    pass
 
 from cgi import parse_qs, escape
 from traceback import format_exc, print_exc, print_stack
 from pprint import pformat
 
-DIR='/var/www/localhost/mod_wsgi'
+DIR = '/var/www/localhost/mod_wsgi'
 LOGDIR = '/projects/critter_list/log'
 LOGFILE = ("%s/%s.log" % (LOGDIR, 'critter'))
 
@@ -91,7 +91,7 @@ class SessionContext:
 
 def TRACE(msg):
     m = ("%s: %s" % (datetime.now().strftime("%H:%M:%S.%f")[0:-3], msg))
-    debuglog.write(m + "\n")
+    debuglog.write("%s\n" % m)
     logging.info(m)
 
 def dump_todo():
@@ -214,7 +214,7 @@ def random_uppercase_letter():
 
 def invent_random_voter():
     TRACE("inventing random voter")
-    return choice([ "Mr. ", "Ms. " ]) + random_uppercase_letter()
+    return choice(["Mr. ", "Ms. "]) + random_uppercase_letter()
 
 def get_client_address(environ):
     try:
@@ -328,8 +328,8 @@ def discover_voter(env, urldict, con):
             "</div>\n"
         )
 
-    TRACE(" voter ip: " + str(ip))
-    TRACE(" voter mac: " + str(mac))
+    TRACE(" voter ip: %s" % str(ip))
+    TRACE(" voter mac: %s" % str(mac))
 
     # Returns a dictionary containing lists as values.
     votestr = urldict.get('voterId', [''])[0] # Returns the first voterId value.
@@ -338,12 +338,12 @@ def discover_voter(env, urldict, con):
     # Always escape user input to avoid script injection
     voterId = escape(votestr)
     if voterId:
-        TRACE("voterId indicated in URL: " + str(voterId))
+        TRACE("voterId indicated in URL: %d" % voterId)
         voterName = lookup_votername(con.cursor(), voterId)
         if len(voterName) > 0:
-            TRACE("voter " + str(voterId) + " exists in db as " + voterName)
+            TRACE("voter %d exists in db as %s" % (voterId, voterName))
         else:
-            TRACE("voter not found in voter db for id " + voterId)
+            TRACE("voter not found in voter db for id %s" % voterId)
             voterId = 0
 
     # TODO: try to get this from MAC address, IP address, cookie or even sessionId?
@@ -534,6 +534,10 @@ Dump a table that shows all of the available playlists, the currently-selected
 playlist and allows to select an alternate playlist
 """
 def dump_playlists_table(sessionContext, admin = False):
+    """
+    Dump a table that shows all of the available playlists, the currently-selected 
+    playlist and allows to select an alternate playlist
+    """
 
     cur = sessionContext.cur
     url = sessionContext.url
@@ -2375,7 +2379,10 @@ def dump_visuals_page(sessionContext):
     if len(voterName) < 1:
         voterName = lookup_votername(sessionContext.cur, sessionContext.voterId)
     # TODO: consider sanity-check of voterName/voterId
-    TRACE("dump_visuals_page: voterId = " + str(sessionContext.voterId) + ", voterName = '" + sessionContext.voterName + "'")
+    TRACE(
+        "dump_visuals_page: voterId = %d, voterName = '%s'"
+        % (sessionContext.voterId, sessionContext.voterName)
+    )
     return (
         dump_html_header() +
         dump_body_header(
@@ -2394,7 +2401,10 @@ def dump_add_track_page(sessionContext):
     if len(voterName) < 1:
         voterName = lookup_votername(sessionContext.cur, sessionContext.voterId)
     # TODO: consider sanity-check of voterName/voterId
-    TRACE("dump_add_track_page: voterId = " + str(sessionContext.voterId) + ", voterName = '" + sessionContext.voterName + "'")
+    TRACE(
+        "dump_add_track_page: voterId = %d, voterName = '%s'"
+        % (sessionContext.voterId, sessionContext.voterName)
+    )
     return (
         dump_html_header() +
         dump_body_header(
@@ -2413,7 +2423,10 @@ def dump_tally_page(sessionContext):
     if len(voterName) < 1:
         voterName = lookup_votername(sessionContext.cur, sessionContext.voterId)
     # TODO: consider sanity-check of voterName/voterId
-    TRACE("dump_tally_page: voterId = " + str(sessionContext.voterId) + ", voterName = '" + sessionContext.voterName + "'")
+    TRACE(
+        "dump_tally_page: voterId = %d, voterName = '%s'"
+        % (sessionContext.voterId, sessionContext.voterName)
+    )
     return (
         dump_html_header() +
         dump_body_header(
@@ -2434,7 +2447,10 @@ def dump_stats_page(sessionContext):
     if len(voterName) < 1:
         voterName = lookup_votername(cur, sessionContext.voterId)
     # TODO: consider sanity-check of voterName/voterId
-    TRACE("dump_stats_page: voterId = " + str(sessionContext.voterId) + ", voterName = '" + voterName + "', playlistId = '" + str(sessionContext.playlistId) + "'")
+    TRACE(
+        "dump_stats_page: voterId = %d, voterName = '%s', playlistId = %d"
+        % (sessionContext.voterId, voterName, sessionContext.playlistId)
+    )
     return (
         dump_html_header() +
         dump_body_header(
@@ -2799,7 +2815,10 @@ def do_vote(sessionContext):
                 return str(sys.exc_info()[0]) + "\n" + format_exc(10)
         else:
             db_vote = str(rows[0][3])
-            TRACE("do_vote: str(vote) = %s, str(db_vote)=%s" % (str(vote), str(db_vote)))
+            TRACE(
+                "do_vote: str(vote) = %s, str(db_vote)=%s"
+                % (str(vote), str(db_vote))
+            )
             if str(ivote) == db_vote:
                 sql = ("DELETE FROM votes " + 
                             "WHERE "
@@ -2837,32 +2856,58 @@ def get_login_from_env(env):
     loginname = ""
     try:
         a = env['wsgi.input'].read()
-        b = parse_qs(a)
-        c = b[b'loginname']
-        d = c[0].decode('utf-8')
+        TRACE("get_login_from_env: a='%s', type(a) = %s" % (a, str(type(a))))
+
+        # TODO: handle utf-8 - error generated here
+        # http://www.w3schools.com/tags/ref_urlencode.asp
+        # parse_qs is cgi.parse_qs
+        #b = unicodedata.normalize('NFD', a)
+        #b.encode('ascii', 'ignore').decode('ascii')
+        #TRACE("get_login_from_env: b='%s'" % b)
+        #cmb_chrs = dict.fromkeys(c1 for c1 in range(sys.maxunicode) if unicodedata.combining(chr(c1)))
+        #b = unicodedata.normalize('NFD', a)
+        #b = b.translate(cmb_chrs)
+        #b = unicodedata.normalize('NFD', a).translate(cmb_chrs)
+
+        b = a.decode('utf-8')
+        TRACE("get_login_from_env: b='%s'" % b)
+        c = parse_qs(b)
+        TRACE("get_login_from_env: c='%s'" % c)
+        d = c['loginname'][0]
+        TRACE("get_login_from_env: d='%s'" % d)
+
+        #e = d[0]
+        #TRACE("get_login_from_env: e='%s', type(e)=%s" % (e, str(type(e))))
+
         loginname = d
-    except KeyError:
-        TRACE("exception referencing dict element loginname")
+    #except KeyError:
+    #    TRACE("get_login_from_env: KeyError exception referencing dict element loginname")
+    except:
+        TRACE("get_login_from_env: exception referencing dict element loginname")
+        e = sys.exc_info()[0]
+        print_exc(file=env['wsgi.errors'])
+        TRACE("sys.exec_info()[0]: " + str(sys.exc_info()[0]))
+        TRACE("format_exc(10): " + format_exc(10))
 
     # Always escape user input to avoid script injection
     # TODO: figure how how to insert this prior to parsing
     loginname = escape(loginname)
 
     if len(loginname) > 0:
-        TRACE("loginname: " + repr(loginname))
+        TRACE("loginname: %s" % repr(loginname))
     else:
         TRACE("loginname not specified")
     return loginname
 
 def get_or_add_voter(con, environ, voterName):
-    TRACE("get_or_add_voter: voterName = " + voterName)
+    TRACE("get_or_add_voter: voterName = %s" % voterName)
     cur = con.cursor()
     voterId = 0
     if len(voterName) > 0:
-        TRACE("login name specified in environment: " + voterName)
+        TRACE("login name specified in environment: %s" % voterName)
         voterId = lookup_voterId(cur, voterName)
         if voterId > 0:
-            TRACE("voterId for " + voterName + " is found as " + str(voterId))
+            TRACE("voterId for %s is found as %d" % (voterName, voterId))
             vn = lookup_votername(cur, voterId)
             if vn != voterName:
                 TRACE(
@@ -2919,7 +2964,10 @@ def dump_environ(environ):
             if str(attr) == "__doc__": continue
             TRACE("environ.%s = '%s'" % (attr, getattr(environ, attr)))
         except:
-            # TRACE("Exception running: " + str(sys.exc_info()[0]) + "\n" + str(format_exc(10)))
+            # TRACE(
+            #    "Exception running: %s\n%s" 
+            #    "% (str(sys.exc_info()[0]), str(format_exc(10)))
+            # )
             pass
 
 
@@ -3012,14 +3060,21 @@ def application(environ, start_response):
         elif urlVoterId > 0:
             voterName = lookup_votername(cur, urlVoterId)
             if len(voterName) < 1:
-                TRACE("application ERROR: no voter found for voterId %d" % urlVoterId)
+                TRACE(
+                    "application ERROR: no voter found for voterId %d" 
+                    % urlVoterId
+                )
                 voterId = 0
             else:
                 voterId = urlVoterId
-                TRACE("application: voterId = %d, voter lookup: %s" % (voterId, voterName))
+                TRACE(
+                    "application: voterId = %d, voter lookup: %s" 
+                    % (voterId, voterName)
+                )
         else:
             TRACE(
-                "application: no login name specified and no login ID found.  urlVoterId = %d" 
+                "application: no login name specified and no login ID found.  "
+                "urlVoterId = %d" 
                 % urlVoterId
             )
 
@@ -3138,8 +3193,14 @@ def application(environ, start_response):
 
         # not found
         else:
-            TRACE("%s was not found; script = %s, voterId = %d, " % (environ['SCRIPT_FILENAME'], voterId))
-            output = ("File Not Found: uri = %s, script = %s, voterId = %d" % (environ['REQUEST_URI'], script, voterId))
+            TRACE(
+                "%s was not found; script = %s, voterId = %d, " 
+                % (environ['SCRIPT_FILENAME'], voterId)
+            )
+            output = (
+                "File Not Found: uri = %s, script = %s, voterId = %d"
+                % (environ['REQUEST_URI'], script, voterId)
+            )
             status = '404 Page Not Found' 
             content_type = 'text/plain'
     except:

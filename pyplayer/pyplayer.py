@@ -1,15 +1,32 @@
 #!/usr/bin/python3.3 -u
-# Bryant Hansen
+# @author: Bryant Hansen
 # @license: GPLv3
 
 """
-a wrapper for mplayer using the slave interfacet
+A wrapper for mplayer using the slave interfacet
 https://mplayerhq.hu/DOCS/tech/slave.txt
 
-This command launches one thread for the mplayer output monitor and one
-thread for mplayer itself
+This is intended to be used as a library (ie. imported into other python
+scripts).  ie.
+  import pyplayer
+  self.mplif = pyplayer.MPlayerIF()
+  mplif.playurl(url)
+But may be run independently with an argument.  Example:
+  ./pyplayer path-to/my_music_file.mp3
 
-It's been tested with ipython; and running from the command line
+This command launches one thread for the mplayer output monitor and one
+thread for mplayer itself.  The current thread continues, exits immediately
+and can be used to control and monitor the 2 threads that have been launched.
+This allows the main thread to control and monitor the other 2 threads, issuing
+play, pause, stop, get_length, get_position, etc. commands and requests.  It
+may listen for external commands and requests, interpret them, control the
+state of the system and provide feedback.
+
+pyplayerd imports this module and acts as a network-based server, receiving
+commands via the network (a json-based interface over TCP/HTTPS)
+
+pyplayer as a library been tested with ipython; and running from the command
+line
 The main work starts with the playurl() function
 
 It is functional, but requires static state information, which is not
@@ -422,6 +439,7 @@ class MPlayerIF:
         retstr = ""
         output = "_default_"
         while len(output) > 0:
+            TRACE("__mplayer_output_loop: mplayer returned '%s'.  " % (output))
             try:
                 # TODO: determine how to make this blocking
                 output = mplproc.stdout.readline().decode("utf-8")
@@ -606,16 +624,16 @@ class MPlayerIF:
                 mplayer_start_event.set()
 
     def launch_player(self, url):
-        if not self.verifyFifoPath(fifo_dir):
+        if not self.__verifyFifoPath(fifo_dir):
             TRACE(
                 "playurl(%s): failed to verify the path to the fifos (%s)"
                 % (url, fifo_dir)
             )
             return False
 
-        if not self.verifyFifo(self.fifo):
+        if not self.__verifyFifo(self.fifo):
             TRACE(
-                "playurl(%s): failed to verifyFifos.  Exiting abnormally" % url
+                "playurl(%s): failed to __verifyFifos.  Exiting abnormally" % url
             )
             return False
         mplayer_start_event = Event()
@@ -637,37 +655,37 @@ class MPlayerIF:
             else:
                 return False
 
-    def verifyFifoPath(self, fifo_dir):
+    def __verifyFifoPath(self, fifo_dir):
         if os.path.exists(fifo_dir):
             if os.path.isdir(fifo_dir):
-                TRACE("verifyFifoPath: %s exists" % fifo_dir)
+                TRACE("__verifyFifoPath: %s exists" % fifo_dir)
                 return True
             else:
                 TRACE(
-                    "verifyFifoPath: %s exists, but not as a directory.  "
+                    "__verifyFifoPath: %s exists, but not as a directory.  "
                     "Cannot continue."
                     % fifo_dir
                 )
                 return False
         else:
-            TRACE("verifyFifoPath: %s does not exist.  Creating..." % fifo_dir)
+            TRACE("__verifyFifoPath: %s does not exist.  Creating..." % fifo_dir)
             try:
                 os.mkdir(fifo_dir)
             except:
                 TRACE(
-                    "verifyFifoPath: exception creating fifo directory %s: %s"
+                    "__verifyFifoPath: exception creating fifo directory %s: %s"
                     % (fifo_dir, str(sys.exc_info()))
                 )
             if os.path.isdir(fifo_dir):
                 return True
             else:
                 TRACE(
-                    "verifyFifoPath: failed to create fifo directory %s"
+                    "__verifyFifoPath: failed to create fifo directory %s"
                     % fifo_dir
                 )
                 return False
 
-    def verifyFifo(self, fifo):
+    def __verifyFifo(self, fifo):
         if os.path.exists(fifo):
             # if it exists, but it not a fifo, then also show an error
             if not stat.S_ISFIFO(os.stat(ififo).st_mode):
@@ -679,7 +697,7 @@ class MPlayerIF:
                 return False
             else:
                 TRACE(
-                    "verifyFifo: fifo %s already exists in the filesystem and "
+                    "__verifyFifo: fifo %s already exists in the filesystem and "
                     "is indeed a fifo.  We must delete the old one."
                     % (fifo)
                 )
@@ -687,12 +705,12 @@ class MPlayerIF:
                     os.remove(fifo)
                     if os.path.exists(fifo):
                         TRACE(
-                            "verifyFifo ERROR: failed to remove old fifo %s"
+                            "__verifyFifo ERROR: failed to remove old fifo %s"
                             % fifo
                         )
                         return False
                 except:
-                    TRACE("Exception in verifyFifo: %s" % str(sys.exc_info()))
+                    TRACE("Exception in __verifyFifo: %s" % str(sys.exc_info()))
                     return False
         try:
             TRACE(
@@ -704,11 +722,11 @@ class MPlayerIF:
             #os.mkfifo(fifo, mode=O644)
             os.mkfifo(fifo)
             if not os.path.exists(fifo):
-                TRACE("ERROR: verifyFifo: Failed to create fifo %s" % fifo)
+                TRACE("ERROR: __verifyFifo: Failed to create fifo %s" % fifo)
                 return False
         except:
             TRACE(
-                "verifyFifo ERROR: failed to create fifo %s.  "
+                "__verifyFifo ERROR: failed to create fifo %s.  "
                 "Description: %s  %s"
                 "Exiting abnormally"
                 % (fifo, sys.exc_info()[0], str(sys.exc_info()))
@@ -736,6 +754,7 @@ class MPlayerIF:
                     empty_count += 1
                     if procstat == None:
                         TRACE(
+                            "__subproc_output_monitor: "
                             "Empty output #%d received from "
                             "subprocess.readline()."
                             "  subprocess.poll() = %s.  type(procstat) = %s  "
@@ -764,8 +783,11 @@ class MPlayerIF:
 
     def playurl(self, url):
         self.launch_player(url)
+        """
         out = self.__mplayer_output_loop(self.mplproc.stdout)
         TRACE("playurl: cmd = '%s', out = '%s'" % (cmd, str(out)))
+
+        """
         # start the read thread
         try:
             self.read_thread = Thread(

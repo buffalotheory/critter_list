@@ -3,112 +3,37 @@
  * @license: GPLv3
  */
 
-body, div.hideoverflow,
-body div.outer
-{
-    background-color: #A0A0A0;
-    font-family: "Trebuchet MS", Helvetica, sans-serif;
-    color: #202020;
-}
-div {
-    background-color: #606060;
-}
-p.login,
-p.instructions,
-th,
-td,
-li,
-div.copyright
-{
-    box-shadow: 1px 1px 2px #101010;
-}
-tr.playlist_heading th {
-    font-weight: bold;
-}
-th {
-    padding-top: 4px;
-    padding-bottom: 4px;
-    font-family: "Arial Black", Gadget, sans-serif;
-    font-family: Tahoma, Geneva, sans-serif;
-    font-family: Verdana, Geneva, sans-serif;
-}
-td {
-    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
-    font-family: "Times New Roman", Times, serif;
-    font-family: Georgia, serif;
-}
-p,
-td,
-li {
-    background-color: #E0E0E0;
-}
-table {
-    font-weight: bold;
-}
+/* TODO: consider separating functionality by the following scheme
+ * 
+ *   * Layout
+ *   * Fonts
+ *   * Colors
+ *    *  - background, text, link, hover, style and shadow
+ *   * Borders
+ *   *   - style, color, thickness, rounding and shadow
+ */
+
+/**************************************************************************
+ * Layout
+**************************************************************************/
+
 h1 {
-    color: #101010;
-    text-shadow: 2px 2px 2px #A0A0A0;
-    font-family: Tahoma, Geneva, sans-serif;
-    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
-    font-family: "Times New Roman", Times, serif;
-    font-weight: bold;
-    font-size:250%;
     margin: 0px;
-    padding: 1px;
 }
 h3 {
-    color: #085008;
     margin: 1px;
-    padding: 1px;
-    font-family: "Lucida Console", Monaco, monospace;
-    font-size: large;
-}
-h4 {
-    margin-bottom: 0px;
 }
 ul {
     margin-top: 0px;
 }
-th
-{
-    background-color: #F0F0F0;
-    border-style: solid;
-    border-color: #101010;
-    border-width: 2px;
-}
-td {
-    border-style: solid;
-    border-color: #101010;
-    border-width: 1px;
-    font-size: small;
-}
+h4,
 table#header,
 table#header td,
-td.header h3
-{
+td.header h3 {
     margin-bottom: 0px;
 }
-div#todo {
-    font-weight: bold;
-}
-div#todo ul li {
-    padding: 3px;
-}
-div.docs {
-    background-color: #F8F8F8;
-    border-style: solid;
-    border-color: #101010;
-    border-width: 1px;
-    border-radius: 7px;
-    margin: 5px;
-    padding: 5px;
-}
-div.clearfloat {
-    clear: both;
-}
 div.menu,
-ul.menu
-{
+ul.menu {
     margin: 5px;
     margin-top: 2px;
     margin-bottom: 2px;
@@ -120,18 +45,8 @@ ul.menu {
     list-style: none;
     display: table-row;
 }
-ul.menu li {
-    float: left;
-}
-
 li.menuitem_sel,
-li.menuitem_unsel
-{
-    margin: 2px;
-    padding: 2px;
-    border-width: 1px;
-    border-style: solid;
-    border-color: #101010;
+li.menuitem_unsel {
     height: 32px;
     display: table-cell;
     vertical-align: middle;
@@ -139,111 +54,61 @@ li.menuitem_unsel
      * height: 30px;
      */
 }
-
-li.menuitem_unsel,
-li.menuitem_unsel:link,
-td.unSelectedVoterCell,
-td.unSelectedPlaylistCell,
-td.playlistCell,
-td.voterCell,
-td.vote
-{
-    font-size: x-large;
-    background-color: #202020;
-    background-image: url("/css/template/wb_starter_button_middle.png");
-    background-size:100% 100%;
-    background-repeat:no-repeat;
-    text-shadow: 2px 2px 2px #202020;
-}
-
-td.votednay,
-td.votedyae,
-td.voterCell,
-td.playlistCell,
-li.menuitem_sel,
-li.menuitem_sel:link
-{
-    font-size: x-large;
-    border-color: #202020;
-    background-color: #80C0D0;
-    background-image: url("/css/template/wb_starter_button_middle_selected2.png");
-    background-size:120% 120%;
-    background-repeat:no-repeat;
-    text-shadow: 2px 2px 2px #202020;
-}
-td.votedyae {
-    border-color: #202020;
-    background-size:100% 100%;
-}
-
-
 li.menuitem_sel:link,
 td.votedyae,
 td.votednay,
-tr.up td
-{
-    border-style: solid;
-    border-color: #F0F0F0;
-    border-width: 3px;
+tr.up td {
     padding: 0px;
-    background-color: #F8F8F8;
 }
-li.menuitem_unsel:link {
-    border-style: solid;
-    border-color: #101010;
-}
-a.menuitem_sel,
-a.menuitem_sel:link,
-td.playlistCell a,
-td.voterCell a
-{
-    color: white;
-}
-a.menuitem_unsel,
-a.menuitem_unsel:link,
-td.unSelectedPlaylistCell a,
-td.unSelectedVoterCell a
-{
-    color: #C0C0C0;
-}
-a
-{
-    font-family: "Arial Black", Gadget, sans-serif;
-    font-size: large;
-    font-style: normal;
-    text-decoration: none;
-    font-weight: bold;
-}
+li.menuitem_sel,
+li.menuitem_unsel,
 a.menuitem_sel, 
-a.menuitem_unsel
-{
+a.menuitem_unsel {
     margin: 2px;
     padding: 2px;
-    border-width: 1px;
 }
-a.menuitem_unsel:active, 
-a.menuitem_sel:active
-{
-    color: #FF8080;
+div.db_table {
+    float: left;
+    max-width: 25%;
+    /* max-width: 35em; */
+    margin: 5px;
 }
-a.menuitem_unsel:hover, 
-a.menuitem_sel:hover, 
-td.unSelectedPlaylistCell a:hover,
-td.unSelectedVoterCell a:hover
-{
-    color: #F0E8E8;
+div.clearfloat,
+div.menuouter,
+div.loginbody,
+div.menuouter,
+div#footer {
+    clear: both;
 }
-
-
-td.playlistCell a {
-    font-weight: normal;
+div.outer,
+div.debug_outer,
+div.menuouter {
+    position: relative;
+    left: 50%;
+    float: left;
 }
-
-
+div.body,
+div.loginbody,
+div.menu,
+div.copyright,
+div.debug_container {
+    position: relative;
+    left: -50%;
+    float: left;
+}
+div.body,
+div.loginbody {
+    padding: 20px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+a.logo {
+    float: left;
+}
+ul.menu li {
+    float: left;
+}
 td.header {
-    border-style: solid;
-    border-color: #101010;
-    border-width: 1px;
     margin: 20px;
     padding-right: 40px;
 }
@@ -251,74 +116,18 @@ td,
 th,
 ul.menu li,
 input,
-div.copyright
-{
+div.copyright {
     padding-left: 4px;
     padding-right: 4px;
-    border-radius: 7px;
 }
+th,
+div.docs,
 tr.yaevote td,
 td.yaevote,
 tr.nayvote td,
 td.nayvote {
     margin: 5px;
     padding: 4px;
-}
-
-tr.yaevote td,
-tr.nayvote td,
-td.nayvote,
-td.yaevote {
-    border-radius: 10px;
-}
-
-/*
-Inverse here to make black background the thumbs-up
-*/
-tr.yaevote td,
-td.yaevote {
-    background-color: #F8F8F8;
-}
-tr.nayvote td,
-td.nayvote {
-    color: #F0F0F0;
-    background-color: #202020;
-}
-
-p.footer,
-p.copyright {
-    font-size: small;
-}
-div.db_table {
-    float: left;
-    /* max-width: 25%; */
-    max-width: 35em;
-    margin: 5px;
-}
-div#footer {
-    clear: both;
-}
-div.debug,
-div.debug_container
-{
-    border-style: solid;
-    border-color: #101010;
-    border-width: 1px;
-    background-color: #F0F0F0;
-}
-a.logo {
-    text-decoration:none;
-    float: left;
-}
-th.misc_stats_label
-{
-    border-style: none;
-    text-align: right;
-    background-color: #E0E0E0;
-}
-td.misc_stats_value
-{
-    text-align: left;
 }
 /*
 table.db_table {
@@ -329,110 +138,113 @@ table.db_table {
 table#table_playlist,
 table.misc_stats,
 table.winners,
-table.losers
-{
+table.losers {
     margin-top: 5px;
     margin-bottom: 5px;
 }
-table.db_table, 
-div.debug, 
-div.debug_container, 
-div.controls, 
-div.js_debug, 
-table.winners, 
-table.losers, 
-table.misc_stats
-{
+table.db_table,
+div.debug,
+div.debug_container,
+div.controls,
+div.js_debug,
+table.winners,
+table.losers,
+table.misc_stats {
     margin-left: auto;
     margin-right: auto;
-}
-table.misc_stats,
-table.winners, 
-table.losers 
-{
-    padding: 10px;
 }
 img {
     /* necessary to properly-center the logo */
     vertical-align: middle;
 }
+div.login form p {
+    margin: 30px;
+}
+table.db_table {
+    padding: 4px;
+}
+table.misc_stats,
+table.winners,
+table.losers,
+p.login {
+    padding: 10px;
+}
 td.unSelectedVoterCell,
 td.voterCell,
-table.db_table tr.up td
-{
+table.db_table tr.up td {
     padding: 5px;
 }
 td.logo {
     padding: 4px;
 }
-div.hideoverflow {
-    overflow: hidden;
-}
-div.menuouter {
-    clear: both;
-}
-div.outer, 
-div.debug_outer, 
-div.menuouter 
-{
-    position: relative;
-    left: 50%;
-    float: left;
-}
-div.body, 
-div.loginbody 
-{
-    padding: 20px;
-    border-style: solid;
-    border-color: #101010;
-    border-width: 1px;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 5px 5px 5px #404040;
-    margin-bottom: 10px;
-}
-div.body,
-div.loginbody,
-div.menu,
-div.copyright,
-div.debug_container
-{
-    position: relative;
-    left: -50%;
-    float: left;
-}
-div.loginbody {
-    clear: both;
-}
-p.login {
-    border-radius: 7px;
-    padding: 10px;
-}
-div.login form p {
-    margin: 30px;
-    font-weight: bold;
-    font-size: medium;
-}
 p.instructions {
     padding: 10px;
     margin: 3px;
     text-align: center;
-    font-weight: bold;
-    font-family: "Times New Roman", Times, serif;
-    font-style:italic;
-    border-radius: 7px;
 }
 p.playlist_title {
-    font-size: large;
     margin: 0px;
     padding: 0px;
 }
 img.controls {
-    border-radius: 7px;
     padding: 2px;
+}
+table.misc_stats th,
+table.misc_stats td {
+    /* border: none; */
+    padding: 3px;
+    padding-left: 1px;
+    padding-right: 1px;
+}
+/*
+td.header {
+    width: 100%;
+}
+*/
+div.docs p,
+h3.todo {
+    padding: 8px;
+}
+h1,
+h3,
+table.misc_stats_inner td {
+    padding: 1px;
+}
+
+p.footer,
+p.copyright {
+    margin: 2px;
+    padding: 0px;
+}
+table.misc_stats,
+table.winners,
+table.losers {
+    padding: 10px;
+}
+td.unSelectedVoterCell,
+td.voterCell,
+table.db_table tr.up td {
+    padding: 5px;
+}
+td.logo {
+    padding: 4px;
+}
+div#todo ul li {
+    padding: 3px;
+}
+div.hideoverflow {
+    overflow: hidden;
+}
+th.misc_stats_label {
+    text-align: right;
+}
+td.misc_stats_value
+{
+    text-align: left;
 }
 table#tracks td:nth-child(n+5):nth-child(-n+7),
 div.controls,
+div.copyright,
 td.id,
 td.score,
 td.unSelectedVoterCell,
@@ -448,145 +260,15 @@ td.yaes,
 td.nahs,
 td.votedon,
 td.last_played,
-td.time_since_played
-{
+td.time_since_played,
+p.instructions {
     text-align: center;
-}
-td.votedon {
-    font-weight: bold;
-    font-size: x-small;
-}
-div.controls
-{
-    background-color: #F0F0F0;
-}
-span.title, 
-span.score {
-    font-weight: bold;
-    font-size: large;
-}
-table.misc_stats_inner td {
-    border: none;
-}
-table.misc_stats th, table.misc_stats td {
-    /* border: none; */
-    box-shadow: None;
-    padding-left: 1px;
-    padding-right: 1px;
-    border-radius: 0px;
-    background-color: None;
 }
 /*
 td.header {
     width: 100%;
 }
 */
-th.topheader {
-    font-size: x-large;
-}
-th.subheader,
-th.score
-{
-    font-size: large;
-    font-weight: bold;
-}
-div.docs p {
-    margin: 8px;
-}
-h3.todo {
-    background-color: #E0E0E0;
-    border-radius: 5px;
-    padding: 8px;
-}
-td.vote {
-    background-color: #A0A0A0;
-}
-table.misc_stats,
-table.winners,
-table.losers,
-div.db_table,
-table.db_table
-{
-    background-color: #909090;
-    border-radius: 10px;
-}
-table.misc_stats_inner
-{
-    border-radius: 10px;
-    border-spacing: 5px;
-    border-width: 1px;
-    border-color: black;
-}
-
-table.misc_stats td
-{
-    padding: 10px;
-    background-color: #E0E0E0;
-    border-width: 2px;
-    padding: 3px;
-    border-radius: 7px;
-}
-table.misc_stats_inner td
-{
-    font-family: "Courier New", Courier, monospace;
-    font-family: "Lucida Console", Monaco, monospace;
-    font-size: medium;
-    font-weight: bold;
-    border-width: 0px;
-    padding: 1px;
-}
-
-table.db_table {
-    padding: 4px;
-    /* border-collapse: separate; */
-    border-spacing: 5px;
-}
-div.docs li,
-div.docs ul li
-{
-    background-color: #F8F8F8;
-    box-shadow: None
-}
-div.copyright {
-    background-color: #E0E0E0;
-    text-align: center;
-}
-p.footer, p.copyright {
-    margin: 2px;
-    padding: 0px;
-}
-td.votedyae, 
-td.votednay
-{
-    border-style: solid;
-    border-color: #202020;
-    border-width: 1px;
-    padding: 0px;
-    box-shadow: inset 1px 1px 1px 1px #707070;
-}
-table.winners,
-table.losers,
-table.misc_stats,
-table.db_table
-{
-    box-shadow: inset 2px 2px 2px 2px #202020;
-}
-div.copyright {
-    position: relative;
-    left: -50%;
-    float: left;
-}
-
-td.delete-vote,
-td.delete-voter
-{
-    border-width: 1px;
-    background-color: #202020;
-    background-image: url("/css/template/wb_starter_button_middle.png");
-    background-size:100% 100%;
-    background-repeat:no-repeat;
-}
-
 /*
  * from:
  *      http://snipplr.com/view/10979/css-cross-browser-word-wrap/
@@ -604,6 +286,414 @@ td.delete-voter
 }
 .pre-line {
     white-space: pre-line;
+}
+
+
+/**************************************************************************
+ * Fonts
+**************************************************************************/
+body,
+div.hideoverflow,
+body div.outer {
+    font-family: "Trebuchet MS", Helvetica, sans-serif;
+}
+th {
+    font-family: "Arial Black", Gadget, sans-serif;
+    font-family: Tahoma, Geneva, sans-serif;
+    font-family: Verdana, Geneva, sans-serif;
+}
+td {
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    font-family: "Times New Roman", Times, serif;
+    font-family: Georgia, serif;
+}
+h1 {
+    font-family: Tahoma, Geneva, sans-serif;
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    font-family: "Times New Roman", Times, serif;
+    font-size:250%;
+    text-shadow: 2px 2px 2px #A0A0A0;
+}
+h3 {
+    font-family: "Lucida Console", Monaco, monospace;
+    font-size: large;
+}
+td {
+    font-size: small;
+}
+h1,
+table,
+div#todo,
+tr.playlist_heading th {
+    font-weight: bold;
+}
+li.menuitem_unsel,
+li.menuitem_unsel:link,
+td.unSelectedVoterCell,
+td.unSelectedPlaylistCell,
+td.playlistCell,
+td.voterCell,
+td.vote,
+td.votednay,
+td.votedyae,
+td.voterCell,
+td.playlistCell,
+li.menuitem_sel,
+li.menuitem_sel:link {
+    font-size: x-large;
+    text-shadow: 2px 2px 2px #202020;
+}
+a {
+    font-family: "Arial Black", Gadget, sans-serif;
+    font-size: large;
+    font-style: normal;
+    font-weight: bold;
+    text-decoration: none;
+}
+td.playlistCell a {
+    font-weight: normal;
+}
+p.footer,
+p.copyright {
+    font-size: small;
+}
+a.logo {
+    text-decoration:none;
+}
+div.login form p {
+    font-weight: bold;
+    font-size: medium;
+}
+p.instructions {
+    font-weight: bold;
+    font-family: "Times New Roman", Times, serif;
+    font-style:italic;
+}
+p.playlist_title {
+    font-size: large;
+}
+td.votedon {
+    font-weight: bold;
+    font-size: x-small;
+}
+span.title,
+span.score,
+th.subheader,
+th.score {
+    font-size: large;
+    font-weight: bold;
+}
+th.topheader {
+    font-size: x-large;
+}
+table.misc_stats_inner td {
+    font-family: "Courier New", Courier, monospace;
+    font-family: "Lucida Console", Monaco, monospace;
+    font-size: medium;
+    font-weight: bold;
+}
+
+
+/**************************************************************************
+ * Borders
+**************************************************************************/
+p.login,
+p.instructions,
+th,
+td,
+li,
+div.copyright {
+    box-shadow: 1px 1px 2px #101010;
+}
+th {
+    border-style: solid;
+    border-color: #101010;
+    border-width: 2px;
+}
+td {
+    border-style: solid;
+    border-color: #101010;
+    border-width: 1px;
+}
+div.docs {
+    border-style: solid;
+    border-color: #101010;
+    border-width: 1px;
+    border-radius: 7px;
+}
+li.menuitem_sel,
+li.menuitem_unsel {
+    border-width: 1px;
+    border-style: solid;
+    border-color: #101010;
+}
+td.votednay,
+td.votedyae,
+td.voterCell,
+td.playlistCell,
+li.menuitem_sel,
+li.menuitem_sel:link {
+    border-color: #202020;
+}
+td.votedyae {
+    border-color: #202020;
+}
+li.menuitem_sel:link,
+td.votedyae,
+td.votednay,
+tr.up td {
+    border-style: solid;
+    border-color: #F0F0F0;
+    border-width: 3px;
+}
+li.menuitem_unsel:link {
+    border-style: solid;
+    border-color: #101010;
+}
+a.menuitem_sel,
+a.menuitem_unsel {
+    border-width: 1px;
+}
+td.header {
+    border-style: solid;
+    border-color: #101010;
+    border-width: 1px;
+}
+td,
+th,
+ul.menu li,
+input,
+div.copyright {
+    border-radius: 7px;
+}
+tr.yaevote td,
+tr.nayvote td,
+td.nayvote,
+td.yaevote {
+    border-radius: 10px;
+}
+div.debug,
+div.debug_container {
+    border-style: solid;
+    border-color: #101010;
+    border-width: 1px;
+}
+th.misc_stats_label {
+    border-style: none;
+}
+table.misc_stats,
+table.winners,
+table.losers,
+div.db_table,
+table.db_table {
+    border-radius: 10px;
+    /* border-collapse: separate; */
+    border-spacing: 5px;
+}
+div.body,
+div.loginbody {
+    border-style: solid;
+    border-color: #101010;
+    border-width: 1px;
+    border-radius: 15px;
+    box-shadow: 5px 5px 5px #404040;
+}
+p.login {
+    border-radius: 7px;
+}
+p.instructions {
+    border-radius: 7px;
+}
+img.controls {
+    border-radius: 7px;
+}
+table.misc_stats_inner td {
+    border: none;
+}
+table.misc_stats th,
+table.misc_stats td {
+    box-shadow: None;
+    border-radius: 7px;
+}
+}
+h3.todo {
+    border-radius: 5px;
+}
+table.misc_stats_inner {
+    border-radius: 10px;
+    border-spacing: 5px;
+    border-width: 1px;
+    border-color: #080808;
+}
+div.docs li,
+div.docs ul li {
+    box-shadow: None
+}
+td.delete-vote,
+td.delete-voter {
+    border-width: 1px;
+}
+td.votedyae,
+td.votednay {
+    border-style: solid;
+    border-color: #202020;
+    border-width: 1px;
+    box-shadow: inset 1px 1px 1px 1px #707070;
+}
+table.winners,
+table.losers,
+table.misc_stats,
+table.db_table {
+    box-shadow: inset 2px 2px 2px 2px #202020;
+}
+
+
+
+
+/**************************************************************************
+ * Colors, Textures, Pictures and related properties
+**************************************************************************/
+body {
+    color: #202020;
+    background-color: #A0A0A0;
+}
+div {
+    background-color: #606060;
+}
+div.hideoverflow,
+body div.outer {
+    color: #202020;
+    background-color: #A0A0A0;
+}
+div.docs {
+    background-color: #F8F8F8;
+}
+div.copyright,
+p,
+td,
+li {
+    background-color: #E0E0E0;
+}
+th {
+    background-color: #F0F0F0;
+}
+h1 {
+    color: #101010;
+}
+h3 {
+    color: #085008;
+}
+li.menuitem_unsel,
+li.menuitem_unsel:link,
+td.unSelectedVoterCell,
+td.unSelectedPlaylistCell,
+td.playlistCell,
+td.voterCell,
+td.vote
+{
+    background-color: #202020;
+    background-image: url("/css/template/wb_starter_button_middle.png");
+    background-size:100% 100%;
+    background-repeat:no-repeat;
+}
+td.votednay,
+td.votedyae,
+td.voterCell,
+td.playlistCell,
+li.menuitem_sel,
+li.menuitem_sel:link {
+    background-color: #80C0D0;
+    background-image: url("/css/template/wb_starter_button_middle_selected2.png");
+    background-size:120% 120%;
+    background-repeat:no-repeat;
+}
+td.votedyae {
+    background-size:100% 100%;
+}
+li.menuitem_sel:link,
+td.votedyae,
+td.votednay,
+tr.up td {
+    background-color: #F8F8F8;
+}
+a.menuitem_sel,
+a.menuitem_sel:link,
+td.playlistCell a,
+td.voterCell a {
+    color: #F8F8F8;
+}
+a.menuitem_unsel,
+a.menuitem_unsel:link,
+td.unSelectedPlaylistCell a,
+td.unSelectedVoterCell a {
+    color: #C0C0C0;
+}
+a.menuitem_unsel:active,
+a.menuitem_sel:active {
+    color: #FF8080;
+}
+a.menuitem_unsel:hover, 
+a.menuitem_sel:hover, 
+td.unSelectedPlaylistCell a:hover,
+td.unSelectedVoterCell a:hover {
+    color: #F0E8E8;
+}
+/*
+Inverse here to make black background the thumbs-up
+*/
+tr.yaevote td,
+td.yaevote {
+    background-color: #F8F8F8;
+}
+tr.nayvote td,
+td.nayvote {
+    color: #F0F0F0;
+    background-color: #202020;
+}
+div.debug,
+div.debug_container {
+    background-color: #F0F0F0;
+}
+th.misc_stats_label {
+    background-color: #E0E0E0;
+}
+table.misc_stats,
+table.winners,
+table.losers,
+div.db_table,
+table.db_table {
+    background-color: #909090;
+}
+div.controls {
+    background-color: #F0F0F0;
+}
+table.misc_stats th,
+table.misc_stats td {
+    background-color: None;
+}
+h3.todo {
+    background-color: #E0E0E0;
+}
+td.vote {
+    background-color: #A0A0A0;
+}
+table.misc_stats td {
+    background-color: #E0E0E0;
+}
+div.docs li,
+div.docs ul li {
+    background-color: #F8F8F8;
+}
+td.delete-vote,
+td.delete-voter {
+    border-width: 1px;
+    background-color: #202020;
+    background-image: url("/css/template/wb_starter_button_middle.png");
+    background-size:100% 100%;
+    background-repeat:no-repeat;
+}
+td.vote {
+    background-color: #A0A0A0;
 }
 
 

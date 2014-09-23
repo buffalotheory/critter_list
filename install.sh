@@ -27,4 +27,6 @@ ln -s "$DIR/template" "$INSTALL_DIR/template"
 ln -s "$DIR/test.css" "$INSTALL_DIR/test.css"
 ln -s "$DIR/vote.js" "$INSTALL_DIR/vote.js"
 
-[[ ! -d /run/pyplayer ]] && mkdir -p /run/pyplayer
+home="~"
+[[ "$HOME" ]] && home="$HOME"
+[[ ! -d "$home"/run/pyplayer ]] && mkdir -p "$home"/run/pyplayer

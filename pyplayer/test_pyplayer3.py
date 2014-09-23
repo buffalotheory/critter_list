@@ -6,6 +6,7 @@
 # (no args)
 #
 # initial conditions: pyplayerd is running
+#   pyplayerd.py start
 
 import os
 import sys
