@@ -15,7 +15,7 @@ import unittest
 class TestSequenceFunctions(unittest.TestCase):
 
     def test_sample(self):
-        c = Client(('localhost', 17000), authkey=b'super_secret_auth_key')
+        c = Client(('localhost', 17000), authkey=b'super_secret_auth_key__CHANGEME')
         proxy = pyplayerc.RPCProxy(c)
         print("proxy.add(2, 3): %d" % proxy.add(2, 3))
 

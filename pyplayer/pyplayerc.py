@@ -23,8 +23,8 @@ class RPCProxy:
         return do_rpc
 
 """
-example:
-c = Client(('localhost', 17000), authkey=b'super_secret_auth_key')
+usage example:
+c = Client(('localhost', 17000), authkey=b'super_secret_auth_key__CHANGEME')
 proxy = RPCProxy(c)
 proxy = pyplayerc.RPCProxy(c)
 proxy.add(2, 3)

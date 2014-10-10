@@ -20,7 +20,7 @@ import unittest
 class TestSequenceFunctions(unittest.TestCase):
 
     def test_sample(self):
-        c = Client(('localhost', 17000), authkey=b'super_secret_auth_key')
+        c = Client(('localhost', 17000), authkey=b'super_secret_auth_key__CHANGEME')
         proxy = pyplayerc.RPCProxy(c)
         result = proxy.add(2, 3)
         self.assertEqual(result, 5)
@@ -39,7 +39,7 @@ class TestSequenceFunctions(unittest.TestCase):
         print("proxy.doesnt_exist(1, 2, 3): %s" % str(result))
 
     def test_speed(self):
-        c = Client(('localhost', 17000), authkey=b'super_secret_auth_key')
+        c = Client(('localhost', 17000), authkey=b'super_secret_auth_key__CHANGEME')
         proxy = pyplayerc.RPCProxy(c)
 
         iterations = 100
@@ -53,7 +53,7 @@ class TestSequenceFunctions(unittest.TestCase):
         sys.stdout.write("\n")
 
     def test_player(self):
-        c = Client(('localhost', 17000), authkey=b'super_secret_auth_key')
+        c = Client(('localhost', 17000), authkey=b'super_secret_auth_key__CHANGEME')
         proxy = pyplayerc.RPCProxy(c)
 
         result = proxy.playurl(sys.argv[1])

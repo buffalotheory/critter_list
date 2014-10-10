@@ -66,7 +66,8 @@ import logging
 from time import sleep
 from datetime import datetime, timedelta
 from threading import Thread, Event
-
+from collections import deque
+import pyplayer_config as config
 
 #####################################################
 # Defaults
@@ -78,8 +79,7 @@ url = ""
 ififo = fifo_dir + "/mplayer.stdin.fifo"
 log = "/projects/critter_list/log/mplayer.log"
 
-LOGDIR = '/projects/critter_list/log'
-LOGFILE = ("%s/%s.log" % (LOGDIR, 'player'))
+#LOGFILE = ("%s%s%s.log" % (LOGDIR, os.sep, 'player'))
 
 #####################################################
 # Constants
@@ -315,7 +315,6 @@ properties = {
     "teletext_half_page"    : "",
 }
 
-
 class MPlayerStates():
     INVALID = 0
     ERROR = 1
@@ -331,7 +330,7 @@ class MPlayerStates():
 def TRACE(msg):
     m = ("%s: %s" % (datetime.now().strftime("%H:%M:%S.%f")[0:-3], msg))
     logging.info(m)
-    print(m)
+    #print(m)
 
 class MPlayerIF:
 
@@ -341,9 +340,11 @@ class MPlayerIF:
     read_thread = None
     fifo = ififo
     mpl_fifo_fd = None
+    #play_queue = []
+    play_queue = deque()
 
     def __init__(self):
-        logging.basicConfig(filename=LOGFILE, level=logging.DEBUG)
+        logging.basicConfig(filename=config.LOGFILE, level=logging.DEBUG)
 
     def flush_output(self, stdouterr):
         # TODO: implement me!
@@ -403,7 +404,7 @@ class MPlayerIF:
             return "PROPERTY_UNAVAILABLE"
         if len(output) < 1:
             return ""
-        TRACE("__subprocess_output_readline: output = %s" % output)
+        #TRACE("__subprocess_output_readline: output = %s" % output)
         if len(expect) > 0:
             split_output = output.split(expect + '=', 1)
             # we have found it
@@ -588,9 +589,20 @@ class MPlayerIF:
         """
         event_set = False
         TRACE("enter mplayer_thread; launching %s" % url)
+        #command = [
+        #            "mplayer",
+        #            "-vo", "null",
+        #            "-ao", "alsa",
+        #            "-slave",
+        #            "-input",
+        #            "file=" + self.fifo,
+        #            "-quiet",
+        #            url
+        #          ]
         command = [
-                    "mplayer",
-                    "-vo", "null",
+                    "mplayer"
+                    "-fs",
+                    "-ni",
                     "-ao", "alsa",
                     "-slave",
                     "-input",
@@ -599,6 +611,7 @@ class MPlayerIF:
                     url
                   ]
         try:
+            # TODO: loop here with a queue of tracks
             self.mplproc = subprocess.Popen(
                                 command,
                                 shell=False,
@@ -626,14 +639,14 @@ class MPlayerIF:
     def launch_player(self, url):
         if not self.__verifyFifoPath(fifo_dir):
             TRACE(
-                "playurl(%s): failed to verify the path to the fifos (%s)"
+                "launch_player(%s): failed to verify the path to the fifos (%s)"
                 % (url, fifo_dir)
             )
             return False
 
         if not self.__verifyFifo(self.fifo):
             TRACE(
-                "playurl(%s): failed to __verifyFifos.  Exiting abnormally" % url
+                "launch_player(%s): failed to __verifyFifos.  Exiting abnormally" % url
             )
             return False
         mplayer_start_event = Event()
@@ -690,7 +703,7 @@ class MPlayerIF:
             # if it exists, but it not a fifo, then also show an error
             if not stat.S_ISFIFO(os.stat(ififo).st_mode):
                 TRACE(
-                    "playurl ERROR: file %s is not a fifo!  "
+                    "__verifyFifo ERROR: file %s is not a fifo!  "
                     " Exiting abnormally"
                     % (ififo)
                 )
@@ -714,7 +727,7 @@ class MPlayerIF:
                     return False
         try:
             TRACE(
-                "playurl: creating fifo %s..."
+                "__verifyFifo: creating fifo %s..."
                 % (fifo)
             )
             # TODO: figure out how to set mode here; never seemed to work
@@ -762,7 +775,14 @@ class MPlayerIF:
                             % (empty_count, str(procstat), str(type(procstat)))
                         )
                     else:
-                        TRACE("Terminating mplayer read loop")
+                        # here is where to check if there's another URL in the queue
+                        next_url = self.__get_next_in_queue()
+                        if next_url == None or len(next_url) < 1:
+                            TRACE("Terminating mplayer read loop; no urls are in the queue")
+                            pass
+                        else:
+                            TRACE("__subproc_output_monitor: launching next url %s" % next_url)
+                            self.playurl(next_url)
                         return 1
                 if empty_count >= 3:
                     TRACE(
@@ -779,9 +799,66 @@ class MPlayerIF:
                 )
                 break
             sleep(0.1)
+
         return 0
 
+    def add_url_to_queue(self, url):
+        try:
+            self.play_queue.append(url)
+            TRACE(
+                "add_url_to_queue: added URL '%s' to queue. %d total items"
+                 % (str(url), len(self.play_queue)))
+            return "added to queue"
+        except:
+            TRACE(
+                "Exception in add_url_to_queue: %s"
+                % str(sys.exc_info()))
+            return "exception adding element to the queue"
+
+    def queue_url_next(self):
+        TRACE(
+            "queue_url_next: queuing URL '%s' next.  %d total items"
+            % (url, len(self.play_queue)))
+        self.play_queue.appendleft(url)
+
+    def __get_next_in_queue(self):
+        try:
+            if len(self.play_queue) < 1:
+                TRACE("__get_next_in_queue: the queue is empty")
+                return None
+            url = self.play_queue.popleft()
+            TRACE(
+                "__get_next_in_queue: retrieved URL '%s' from the queue.  %d total items"
+                % (url, len(self.play_queue)))
+            return url
+        except:
+            TRACE(
+                "Exception in __get_next_in_queue: %s"
+                % str(sys.exc_info()))
+            return None
+
+    def flush_queue(self):
+        TRACE("flush_queue: flushing the queue")
+        self.play_queue.clear()
+
+    def replace_queue_with_url(self, url):
+        TRACE(
+            "replace_queue_with_url: replacing the entire queue with the single URL '%s'"
+            % url)
+        self.play_queue.clear()
+        self.play_queue.append(url)
+
+    def play_next_url(self):
+        # here is where to check if there's another URL in the queue
+        next_url = self.__get_next_in_queue()
+        if next_url == None or len(next_url) < 1:
+            TRACE("play_next_url: no urls are in the queue")
+        else:
+            TRACE("play_next_url: launching next url %s" % next_url)
+            self.playurl(next_url)
+
     def playurl(self, url):
+        TRACE("playurl: url = '%s'" % str(url))
         self.launch_player(url)
         """
         out = self.__mplayer_output_loop(self.mplproc.stdout)

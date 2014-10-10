@@ -20,7 +20,7 @@ from multiprocessing.connection import Client
 
 if __name__ == "__main__":
     USAGE = sys.argv[0] + "  media_file"
-    c = Client(('localhost', 17000), authkey=b'super_secret_auth_key')
+    c = Client(('localhost', 17000), authkey=b'super_secret_auth_key__CHANGEME')
     proxy = pyplayerc.RPCProxy(c)
     result = proxy.playurl(sys.argv[1])
 

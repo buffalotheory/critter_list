@@ -1,0 +1,1 @@
+amixer sset Master 70% ; amixer scontents

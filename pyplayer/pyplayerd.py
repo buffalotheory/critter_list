@@ -17,15 +17,23 @@ import signal
 
 import json
 
+from datetime import datetime, timedelta
+
 from multiprocessing.connection import Listener
 from threading import Thread
 
 import pyplayer
 from inspect import getmembers, isfunction, ismethod
 
-LOGDIR = "/var/log/pyplayer"
-stderr_file = LOGDIR + os.sep + "pyplayer.err"
-stdout_file = LOGDIR + os.sep + "pyplayer.log"
+#debuglog = StringIO()
+def TRACE(msg):
+    print(
+        "%s: %s"
+        % (datetime.now().strftime("%Y-%m-%d_%H:%M:%S.%f")[0:-3], msg),
+        file=sys.stderr)
+    #debuglog.write("%s\n" % m)
+    #logging.info(m)
+    #print('%s' % m, file=sys.stderr)
 
 class RPCHandler:
 
@@ -82,6 +90,12 @@ def daemonize(pidfile, *,
               stdout='/dev/null',
               stderr='/dev/null'):
 
+    # TODO: check for existence of stdin, stdout and stderr files and
+    #       the directories containing them
+    
+    # TODO: verify the directory that contains the PID file, both the existence
+    #       and the writability for the current user
+
     if os.path.exists(pidfile):
         raise RuntimeError('Already running')
 
@@ -102,7 +116,7 @@ def daemonize(pidfile, *,
     except OSError as e:
         raise RuntimeError('fork #2 failed.')
 
-    print('%s started' % DAEMON, file=sys.stderr)
+    TRACE('%s started' % DAEMON)
 
     # Flush I/O buffers
     sys.stdout.flush()
@@ -141,37 +155,38 @@ def daemon_start():
     try:
         daemonize(
             PIDFILE,
-            stdout=stdout_file,
-            stderr=stderr_file
+            stdout=pyplayer.config.stdout_file,
+            stderr=pyplayer.config.stderr_file
         )
-        print('%s started' % PIDFILE, file=sys.stderr)
+        TRACE('%s started' % PIDFILE)
     except RuntimeError as e:
-        print(e, file=sys.stderr)
+        TRACE(e)
         raise SystemExit(1)
     main()
 
 def daemon_stop():
     if os.path.exists(PIDFILE):
         with open(PIDFILE) as f:
+            TRACE('stopping %s...' % DAEMON)
             os.kill(int(f.read()), signal.SIGTERM)
             # FIXME: don't exit until the process is confirmed dead
-        print('%s stopped' % DAEMON, file=sys.stderr)
+        TRACE('%s stopped' % DAEMON)
     else:
-        print('Not running', file=sys.stderr)
+        TRACE('Not running')
         raise SystemExit(1)
 
 def daemon_status():
     if not os.path.exists(PIDFILE):
-        print('Not running.  %s does not exist.' % PIDFILE, file=sys.stderr)
+        TRACE('Not running.  %s does not exist.' % PIDFILE)
         raise SystemExit(1)
 
     pid = int(open(PIDFILE).read())
     # example: cmdlinefile="/projects/6124/cmdline"
     cmdlinefile = "/proc/%d/cmdline" % pid
     if not os.path.exists(cmdlinefile):
-        print(
+        TRACE(
             'Not running.  cmdline file %s does not exist in /proc tree.'
-            % cmdlinefile, file=sys.stderr
+            % cmdlinefile
         )
         raise SystemExit(1)
 
@@ -180,12 +195,12 @@ def daemon_status():
     s2 = s.split("\0")[1]
     # example: s2='./pyplayerd.py'
     if not s2.endswith(DAEMON):
-        print(
+        TRACE(
             'Not running.  cmdline file %s indicates %s; expected %s'
-            % (cmdlinefile, s2, DAEMON), file=sys.stderr
+            % (cmdlinefile, s2, DAEMON)
         )
         raise SystemExit(1)
-    print('%s is running (pid=%d)' % (DAEMON, pid), file=sys.stderr)
+    TRACE('%s is running (pid=%d)' % (DAEMON, pid))
 
 def daemon_restart():
     try:
@@ -203,22 +218,22 @@ def main():
     handler.register_function(add)
     handler.register_function(sub)
     for f in getmembers(handler.mplif):
+        if f[1] is None: continue
         print(
-            "handler.mplif: method %s (type = %s) ismethod = %s"
-            % (str(f[1]), str(type(f[1])), str(ismethod(f[1])))
+            "handler.mplif: %s (type = %s)"
+            % (str(f[1]), str(type(f[1])))
         )
         if ismethod(f[1]) and f[0][0] != '_':
             handler.register_function(f[1])
     # Run the server
-    rpc_server(handler, ('localhost', 17000), authkey=b'super_secret_auth_key')
+    rpc_server(handler, ('localhost', 17000), authkey=b'super_secret_auth_key__CHANGEME')
 
 if __name__ == '__main__':
     PIDFILE = '/run/pyplayer/pyplayer.pid'
     DAEMON = sys.argv[0]
     if len(sys.argv) != 2:
         print(
-            'Usage: {} [start|stop|restart|status]'.format(sys.argv[0]),
-            file=sys.stderr
+            'Usage: {} [start|stop|restart|status]'.format(sys.argv[0])
         )
         raise SystemExit(1)
     if sys.argv[1] == 'start':
@@ -230,6 +245,6 @@ if __name__ == '__main__':
     elif sys.argv[1] == 'restart':
         daemon_restart()
     else:
-        print('Unknown command {!r}'.format(sys.argv[1]), file=sys.stderr)
+        TRACE('Unknown command {!r}'.format(sys.argv[1]))
         raise SystemExit(1)
 

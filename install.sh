@@ -1,6 +1,8 @@
 #!/bin/bash
 # Bryant Hansen
 
+# TODO Make ebuild
+
 SOURCE_DIR="/project/critter_list"
 INSTALL_DIR="/var/www/localhost/htdocs/mod_wsgi"
 ln -s "$DIR/mod_wsgi/critter.wsgi" "$INSTALL_DIR/admin.wsgi"
